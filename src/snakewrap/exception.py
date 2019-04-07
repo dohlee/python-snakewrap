@@ -6,3 +6,12 @@ class RuleOutputException(Exception):
 
 class RuleParameterException(Exception):
     pass
+
+class NoMatchingFileNameException(Exception):
+    pass
+
+class AmbiguousFileNameException(Exception):
+    pass
+
+class FileUnmatchedException(Exception):
+    pass
