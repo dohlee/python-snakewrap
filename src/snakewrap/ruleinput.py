@@ -66,3 +66,20 @@ class MultiRuleInput(RuleInput):
 
     def __str__(self):
         return ' '.join([' '.join([k, f.infer_raw_name()]) for k, f in zip(self.command_keys, self.files)])
+
+class ListInput(RuleInput):
+    def __init__(self, rule_key, *command_keys, name=None, desc=None):
+        super(ListInput, self).__init__(rule_key, *command_keys, name=name, desc=desc)
+
+        if len(command_keys) != 1:
+            raise AttributeError('The number of commandline option for ListInput should be one.')
+    
+    def set_template(self, snakemake_input):
+        try:
+            self.files = snakemake_input[self.rule_key]
+            self.names = [f.name for f in self.files]
+        except KeyError:
+            raise exception.RuleInputException('Missing required input: %s' % self.rule_key)
+    
+    def __str__(self):
+        return '%s %s' % (self.command_keys[0], ' '.join([f.filename for f in self.files]))

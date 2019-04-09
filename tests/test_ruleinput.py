@@ -121,7 +121,7 @@ def test_simpleruleinput_string():
 
     assert str(si) == '-i mysample.fastq'
 
-def test_multiruleinput_workflow():
+def test_multiruleinput_simpletemplatefile_workflow():
     si = ruleinput.MultiRuleInput('reads', '-1', '-2')
 
     read1 = SimpleTemplateFile('read1')
@@ -138,3 +138,55 @@ def test_multiruleinput_workflow():
     si.assign(mock_input, sequential=True)
 
     assert str(si) == '-1 mysample.read1.fastq -2 mysample.read2.fastq'
+
+def test_listinput_init():
+    li = ruleinput.ListInput('reads', '-i')
+
+def test_listinput_init_failed_because_of_multiple_command_keys():
+    with pytest.raises(AttributeError):
+        li = ruleinput.ListInput('reads', '-1', '-2')
+
+def test_listinput_set_template():
+    li = ruleinput.ListInput('reads', '-i')
+    read1 = SimpleTemplateFile('read1')
+    read2 = SimpleTemplateFile('read2')
+
+    mock_templates = {
+        'reads': [read1, read2],
+    }
+    li.set_template(mock_templates)
+
+def test_listinput_assign():
+    li = ruleinput.ListInput('reads', '-i')
+    read1 = SimpleTemplateFile('read1')
+    read2 = SimpleTemplateFile('read2')
+
+    mock_templates = {
+        'reads': [read1, read2],
+    }
+    li.set_template(mock_templates)
+
+    mock_input = {
+        'reads': ['mysample.read1.fastq', 'mysample.read2.fastq'],
+    }
+    li.assign(mock_input, sequential=True)
+
+    assert li.files[0].filename == 'mysample.read1.fastq'
+    assert li.files[1].filename == 'mysample.read2.fastq'
+
+def test_listinput_string():
+    li = ruleinput.ListInput('reads', '-i')
+    read1 = SimpleTemplateFile('read1')
+    read2 = SimpleTemplateFile('read2')
+
+    mock_templates = {
+        'reads': [read1, read2],
+    }
+    li.set_template(mock_templates)
+
+    mock_input = {
+        'reads': ['mysample.read1.fastq', 'mysample.read2.fastq'],
+    }
+    li.assign(mock_input, sequential=True)
+
+    assert str(li) == '-i mysample.read1.fastq mysample.read2.fastq'
