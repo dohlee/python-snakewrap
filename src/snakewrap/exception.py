@@ -7,6 +7,9 @@ class RuleOutputException(Exception):
 class RuleParameterException(Exception):
     pass
 
+class RuleNotAttachedException(Exception):
+    pass
+
 class NoMatchingFileNameException(Exception):
     pass
 
