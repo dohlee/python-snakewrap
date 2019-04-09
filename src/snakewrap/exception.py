@@ -7,14 +7,14 @@ class RuleOutputException(Exception):
 class RuleParameterException(Exception):
     pass
 
-class RuleNotAttachedException(Exception):
+class TemplateNotSetException(Exception):
+    pass
+
+class FileNameMismatchException(Exception):
+    pass
+
+class FileUnassignedException(Exception):
     pass
 
 class NoMatchingFileNameException(Exception):
-    pass
-
-class AmbiguousFileNameException(Exception):
-    pass
-
-class FileUnmatchedException(Exception):
     pass

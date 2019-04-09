@@ -1,102 +1,97 @@
 import os
 import pytest
+from snakewrap.files import SimpleTemplateFile, RenamedTemplateFile, SimpleTemplateDirectory
 from snakewrap import files, exception
 
-def test_file_init():
-    f = files.File(
+def test_simpletemplatefile_init():
+    f = SimpleTemplateFile(
         name='bam_output',
-        regex=r'(?P<basename>.+?)_output.bam',
     )
 
     assert f.name == 'bam_output'
-    assert f.regex == r'(?P<basename>.+?)_output.bam'
 
-def test_file_match():
-    f = files.File(
+def test_simpletemplatefile_assign():
+    f = SimpleTemplateFile(
         name='bam_output',
-        regex=r'(?P<basename>.+?)_output.bam',
     )
 
-    names = ['test_output_report.txt', 'test_output.bam']
-    f.match(names)
+    f.assign('mysample.bam')
+    assert f.filename == 'mysample.bam'
+
+def test_renamedtemplatefile_init():
+    f = RenamedTemplateFile(
+        name='bam_output',
+        regex=r'(?P<basename>.+?)_output.bam',
+        raw_name='{basename}.bam',
+    )
+
+def test_renamedtemplatefile_assign():
+    f = RenamedTemplateFile(
+        name='bam_output',
+        regex=r'(?P<basename>.+?)_output.bam',
+        raw_name='{basename}.bam',
+    )
+
+    name = 'test_output.bam'
+    f.assign(name)
 
     assert f.filename == 'test_output.bam'
     assert f.get_wildcard('basename') == 'test'
 
-def test_file_match_failed_because_of_multiple_match():
-    f = files.File(
+def test_renamedtemplatefile_assign_failed_because_of_no_match():
+    f = RenamedTemplateFile(
         name='bam_output',
-        regex=r'(?P<basename>.+?)_output.bam'
+        regex=r'(?P<basename>.+?)_output.bam',
+        raw_name='{basename}.bam',
     )
 
-    names = ['test1_output.bam', 'test2_output.bam']
+    name = 'test1_report.bam'
+    with pytest.raises(exception.FileNameMismatchException):
+        f.assign(name)
 
-    with pytest.raises(exception.AmbiguousFileNameException):
-        f.match(names)
-
-def test_file_match_failed_because_of_no_match():
-    f = files.File(
-        name='bam_output',
-        regex=r'(?P<basename>.+?)_output.bam'
-    )
-
-    names = ['test1_output.bam', 'test2_output.bam']
-
-    with pytest.raises(exception.AmbiguousFileNameException):
-        f.match(names)
-
-def test_file_init_with_raw_name():
-    f = files.File(
+def test_renamedtemplatefile_infer_raw_name():
+    f = RenamedTemplateFile(
         name='bam_output',
         regex=r'(?P<basename>.+?)_output.bam',
         raw_name='{basename}.bam'
     )
 
-    assert f.raw_name == '{basename}.bam'
-
-def test_file_infer_raw_name():
-    f = files.File(
-        name='bam_output',
-        regex=r'(?P<basename>.+?)_output.bam',
-        raw_name='{basename}.bam'
-    )
-
-    names = ['test1_output.bam', 'test1_report.bam']
-    f.match(names)
+    name = 'test1_output.bam'
+    f.assign(name)
 
     assert f.infer_raw_name() == 'test1.bam'
 
-def test_file_infer_raw_name_failed_because_of_unmatched_file():
-    f = files.File(
+def test_renamedtemplatefile_infer_raw_name_failed_because_of_unassigned_file():
+    f = RenamedTemplateFile(
         name='bam_output',
         regex=r'(?P<basename>.+?)_output.bam',
         raw_name='{basename}.bam'
     )
 
-    with pytest.raises(exception.FileUnmatchedException):
+    with pytest.raises(exception.FileUnassignedException):
         assert f.infer_raw_name() == 'test1.bam'
 
-def test_file_rename_command():
-    f = files.File(
+def test_renamedtemplatefile_rename_command():
+    f = RenamedTemplateFile(
         name='bam_output',
         regex=r'(?P<basename>.+?)_output.bam',
         raw_name='{basename}.bam'
     )
 
-    names = ['test1_output.bam', 'test1_report.bam']
-    f.match(names)
+    name = 'test1_output.bam'
+    f.assign(name)
 
     assert f.rename_command() == 'mv test1.bam test1_output.bam'
 
-def test_file_with_multiple_group_regex():
-    f = files.File(
+def test_renamedtemplatefile_with_multiple_group_regex():
+    f = RenamedTemplateFile(
         name='chip_output',
         regex=r'(?P<cell>.+?)_(?P<target>.+?).bam',
         raw_name='{cell}_{target}_output.bam',
     )
 
-    names = ['HEK293T_H3K27ac.bam', 'HEK293T_H3K27ac_report.txt']
-    f.match(names)
+    names = 'HEK293T_H3K27ac.bam'
+    f.assign(names)
 
     assert f.filename == 'HEK293T_H3K27ac.bam'
     assert f.get_wildcard('cell') == 'HEK293T'
@@ -105,7 +100,7 @@ def test_file_with_multiple_group_regex():
     assert f.rename_command() == 'mv HEK293T_H3K27ac_output.bam HEK293T_H3K27ac.bam'
 
 def test_file_with_directory():
-    f = files.File(
+    f = RenamedTemplateFile(
         name='chip_output',
         regex=r'/project/test/mapping_result/(?P<cell>.+?)_(?P<target>.+?).bam',
         raw_name='/project/test/mapping_result/{cell}_{target}_output.bam',
@@ -113,10 +108,9 @@ def test_file_with_directory():
 
     bam_name = '/project/test/mapping_result/HEK293T_H3K27ac.bam'
     raw_bam_name = '/project/test/mapping_result/HEK293T_H3K27ac_output.bam'
-    report_name = '/project/test/mapping_result/HEK293T_H3K27ac_report.txt'
 
-    names = [bam_name, report_name]
-    f.match(names)
+    name = bam_name
+    f.assign(name)
 
     assert f.filename == bam_name
     assert f.get_wildcard('cell') == 'HEK293T'
@@ -124,28 +118,31 @@ def test_file_with_directory():
     assert f.infer_raw_name() == raw_bam_name
     assert f.rename_command() == 'mv %s %s' % (raw_bam_name, bam_name)
 
-def test_directory_init():
-    dir = files.Directory(
+def test_simpletemplatedirectory_init():
+    dir = SimpleTemplateDirectory(
         name='output_dir',
-        regex=r'(?P<basename>.+?)_output$',
     )
 
-    names = ['test_output.bam', 'test_output_report.txt', 'test_output']
-    dir.match(names)
+def test_simpletemplatedirectory_assign():
+    dir = SimpleTemplateDirectory(
+        name='output_dir',
+    )
+
+    name = 'test_output'
+    dir.assign(name)
 
     assert dir.filename == 'test_output'
-    assert dir.get_wildcard('basename') == 'test'
 
-def test_directory_check_subdirectory():
-    dir = files.Directory(
+def test_simpletemplatedirectory_check_subdirectory():
+    dir = SimpleTemplateDirectory(
         name='output_dir',
-        regex=r'(?P<basename>.+?)_output$',
     )
 
     if not os.path.exists('test_output'):
         os.makedirs('test_output/test1')
-    names = ['test_output.bam', 'test_output_report.txt', 'test_output']
-    dir.match(names)
+
+    name = 'test_output'
+    dir.assign(name)
     
     assert dir.check_subdirectory('test1') == True
     assert dir.check_subdirectory('test2') == False

@@ -17,15 +17,16 @@ class RuleInput():
     def __str__(self):
         raise NotImplementedError
 
-    def attach(self, snakemake_input):
+    def set_template(self, snakemake_input):
         raise NotImplementedError
 
-    def match(self, snakemake_input):
+    def assign(self, snakemake_input, sequential=True):
         if self.files is None:
-            raise exception.RuleNotAttachedException('Attach files before matching.')
-        
-        for f in self.files:
-            f.match(snakemake_input[self.rule_key])
+            raise exception.TemplateNotSetException('Set template files before assigning.')
+
+        if sequential: 
+            for f, input_f in zip(self.files, snakemake_input[self.rule_key]):
+                f.assign(input_f)
 
 class SimpleRuleInput(RuleInput):
     def __init__(self, rule_key, *command_keys, name=None, desc=None):
@@ -35,7 +36,7 @@ class SimpleRuleInput(RuleInput):
         if len(command_keys) != 1:
             raise exception.RuleInputException('%s requires only one command key.' % self.describe())
 
-    def attach(self, snakemake_input):
+    def set_template(self, snakemake_input):
         try:
             self.files = snakemake_input[self.rule_key]
             self.names = [f.name for f in self.files]
@@ -53,7 +54,7 @@ class MultiRuleInput(RuleInput):
     def __init__(self, rule_key, *command_keys, name=None, desc=None):
         super(MultiRuleInput, self).__init__(rule_key, *command_keys, name=name, desc=desc)
 
-    def attach(self, snakemake_input):
+    def set_template(self, snakemake_input):
         try:
             self.files = snakemake_input[self.rule_key]
             self.names = [f.name for f in self.files]
