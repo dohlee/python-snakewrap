@@ -29,7 +29,8 @@ class SimpleRuleInput(RuleInput):
 
     def attach(self, snakemake_input):
         try:
-            self.names = snakemake_input[self.rule_key]
+            self.files = snakemake_input[self.rule_key]
+            self.names = [f.name for f in self.files]
         except KeyError:
             raise exception.RuleInputException('Missing required input: %s' % self.rule_key)
 
@@ -46,7 +47,8 @@ class MultiRuleInput(RuleInput):
 
     def attach(self, snakemake_input):
         try:
-            self.names = snakemake_input[self.rule_key]
+            self.files = snakemake_input[self.rule_key]
+            self.names = [f.name for f in self.files]
         except KeyError:
             raise exception.RuleInputException('Missing required input: %s' % self.rule_key)
         
