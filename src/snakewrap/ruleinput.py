@@ -1,18 +1,18 @@
-from snakewrap import exception
+from snakewrap import exception, util
 
 class RuleInput():
-    def __init__(self, rule_key, *command_keys, name=None, desc=None):
-        self.rule_key = rule_key
-        self.command_keys = list(command_keys)
-        self.files, self.names = None, None
+    def __init__(self, *rule_keys, name=None, desc=None):
+        self.rule_key = rule_keys
+        self.files = dict()
+        self.n_anonymous_keys = 0
         self.name = name
         self.desc = desc
 
     def describe(self):
         if self.name:
-            return 'Input %s (for %s)' % (self.rule_key, self.name)
+            return 'Input %s (for %s)' % (self.rule_keys, self.name)
         else:
-            return 'Input %s' % self.rule_key
+            return 'Input %s' % self.rule_keys
 
     def __str__(self):
         raise NotImplementedError
@@ -33,12 +33,20 @@ class SimpleRuleInput(RuleInput):
         super(SimpleRuleInput, self).__init__(rule_key, *command_keys, name=name, desc=desc)
 
         # Sanity check for the numbers of command keys.
-        if len(command_keys) != 1:
-            raise exception.RuleInputException('%s requires only one command key.' % self.describe())
+        if len(command_keys) > 1:
+            raise exception.RuleInputException('%s does not accept more than one command key.' % self.describe())
 
-    def set_template(self, snakemake_input):
+    def set_template(self, template):
         try:
-            self.files = snakemake_input[self.rule_key]
+            for template_files, command_key in template:
+                template_files = util.alwayslist(template_files)
+                if command_key is None:
+                    self.n_anonymous_keys += 1
+                    command_key = '_anonymous_%d' % self.n_anonymous_keys
+                self.files[command_key] = 
+            self.files = [f for f, _ in template[self.rule_key]]
+
+            self.files = template[self.rule_key]
             self.names = [f.name for f in self.files]
         except KeyError:
             raise exception.RuleInputException('Missing required input: %s' % self.rule_key)
@@ -48,7 +56,10 @@ class SimpleRuleInput(RuleInput):
             raise exception.RuleInputException('%s requires only one input.' % self.describe())
 
     def __str__(self):
-        return '-i %s' % (self.files[0].infer_raw_name())
+        if len(self.command_keys) == 0:
+            return '%s' % (self.files[0].infer_raw_name())
+        else:
+            return '%s %s' % (self.command_keys[0], self.files[0].infer_raw_name())
 
 class MultiRuleInput(RuleInput):
     def __init__(self, rule_key, *command_keys, name=None, desc=None):
