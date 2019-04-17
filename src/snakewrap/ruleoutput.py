@@ -1,22 +1,20 @@
+from snakewrap import exception
 
 class RuleOutput():
-    def __init__(self, rule_key, *command_keys, name=None, desc=None):
-        self.rule_key = rule_key
-        self.command_keys = list(command_keys)
-        self.files, self.names = None, None
+    def __init__(self, template, name=None, desc=None):
+        self.template = template
+        self.rule_keys = list(template.keys())
+        self.n_anonymous_keys = 0
         self.name = name
         self.desc = desc
 
     def describe(self):
         if self.name:
-            return 'Output %s (for %s)' % (self.rule_key, self.name)
+            return 'Output %s (for %s)' % (self.rule_keys, self.name)
         else:
-            return 'Output %s' % self.rule_key
+            return 'Output %s' % self.rule_keys
 
     def __str__(self):
-        raise NotImplementedError
-
-    def set_template(self, snakemake_input):
         raise NotImplementedError
 
     def assign(self, snakemake_input, sequential=True):
@@ -28,11 +26,11 @@ class RuleOutput():
                 f.assign(input_f)
 
 class SimpleRuleOutput(RuleOutput):
-    def __init__(self, rule_key, *command_keys, name=None, desc=None):
-        super(SimpleRuleOutput, self).__init__(rule_key, *command_keys, name, desc)
+    def __init__(self, template, name=None, desc=None):
+        super(SimpleRuleOutput, self).__init__(template, name, desc)
 
         # Sanity check for the numbers of command keys.
-        if len(command_keys) != 1:
+        if len(self.rule_keys) != 1:
             raise exception.RuleInputException('%s requires only one command key.' % self.describe())
     
     def set_template(self, template):

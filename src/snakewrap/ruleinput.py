@@ -1,9 +1,9 @@
 from snakewrap import exception, util
 
 class RuleInput():
-    def __init__(self, *rule_keys, name=None, desc=None):
-        self.rule_key = rule_keys
-        self.files = dict()
+    def __init__(self, template, name=None, desc=None):
+        self.template = template
+        self.rule_keys = list(template.keys())
         self.n_anonymous_keys = 0
         self.name = name
         self.desc = desc
@@ -17,9 +17,6 @@ class RuleInput():
     def __str__(self):
         raise NotImplementedError
 
-    def set_template(self, snakemake_input):
-        raise NotImplementedError
-
     def assign(self, snakemake_input, sequential=True):
         if self.files is None:
             raise exception.TemplateNotSetException('Set template files before assigning.')
@@ -29,31 +26,22 @@ class RuleInput():
                 f.assign(input_f)
 
 class SimpleRuleInput(RuleInput):
-    def __init__(self, rule_key, *command_keys, name=None, desc=None):
-        super(SimpleRuleInput, self).__init__(rule_key, *command_keys, name=name, desc=desc)
+    def __init__(self, template, name=None, desc=None):
+        super(SimpleRuleInput, self).__init__(template, name=name, desc=desc)
 
         # Sanity check for the numbers of command keys.
-        if len(command_keys) > 1:
+        if len(self.rule_keys) > 1:
             raise exception.RuleInputException('%s does not accept more than one command key.' % self.describe())
+    
+    def _template_reader(self, template):
+        for template_files, command_keys in template:
+            template_files = util.alwayslist(template_files)
 
-    def set_template(self, template):
-        try:
-            for template_files, command_key in template:
-                template_files = util.alwayslist(template_files)
-                if command_key is None:
-                    self.n_anonymous_keys += 1
-                    command_key = '_anonymous_%d' % self.n_anonymous_keys
-                self.files[command_key] = 
-            self.files = [f for f, _ in template[self.rule_key]]
-
-            self.files = template[self.rule_key]
-            self.names = [f.name for f in self.files]
-        except KeyError:
-            raise exception.RuleInputException('Missing required input: %s' % self.rule_key)
-
-        # Sanity check for the numbers of input files.
-        if len(self.names) != 1:
-            raise exception.RuleInputException('%s requires only one input.' % self.describe())
+            if command_key is None:
+                self.n_anonymous_keys += 1
+                command_key = '_anonymous_%d' % self.n_anonymous_keys
+            
+            yield template_files, command_keys
 
     def __str__(self):
         if len(self.command_keys) == 0:

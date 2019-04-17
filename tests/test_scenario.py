@@ -1,24 +1,30 @@
 import snakewrap as sw
 
 def test_samtools():
+    snakemake = {
+        'input': {
+            'bam': 'test.bam',
+        },
+        'output': {
+            'sorted_bam': 'test.sorted.bam',
+        },
+        'threads': 1,
+        'params': {
+            'extra': '',
+        },
+        'log': 'logs/log.txt'
+    }
+
     bam = sw.SimpleTemplateFile('bam')
-    bam_output = sw.SimpleTemplateFile('sorted_bam')
+    sorted_bam = sw.SimpleTemplateFile('sorted_bam')
 
     # Create RuleInput object.
-    input = sw.SimpleRuleInput(
-        rule_keys='bam',
-    )
-    # Set template to the object.
-    input.set_template({
+    input = sw.SimpleRuleInput({
         'bam': (bam, None),
     })
 
     # Create RuleOutput object.
-    output = sw.SimpleRuleOutput(
-        rule_keys='sorted_bam',
-    )
-    # Set template to the object.
-    output.set_template({
+    output = sw.SimpleRuleOutput({
         'sorted_bam': [(sorted_bam, '-o')],
     })
 
@@ -28,7 +34,10 @@ def test_samtools():
     )
 
     # Create RuleThreads object.
-    threads = sw.SimpleRuleThreads()
+    threads = sw.SimpleRuleThreads(command_key='-@')
 
-    wrapper = Wrapper(snakemake, command='samtools sort')
+    wrapper = sw.Wrapper(snakemake, command='samtools sort')
+
+    expected_command = '(samtools sort test.bam -o test.sorted.bam -T test.sorted -@ 1) 2> logs/log.txt'
+    assert set(wrapper.get_command().split()) == set()
     wrapper.run()

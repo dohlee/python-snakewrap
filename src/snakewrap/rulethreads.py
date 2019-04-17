@@ -14,3 +14,7 @@ class RuleThreads():
 
     def __str__(self):
         return '%s %d' % (self.command_key, self.num_thread)
+
+class SimpleRuleThreads(RuleThreads):
+    def __init__(self, command_key, name=None, desc=None):
+        super(SimpleRuleThreads, self).__init__(command_key, name=None, desc=None)
