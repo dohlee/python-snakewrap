@@ -17,13 +17,18 @@ class RuleInput():
     def __str__(self):
         raise NotImplementedError
 
-    def assign(self, snakemake_input, sequential=True):
-        if self.files is None:
-            raise exception.TemplateNotSetException('Set template files before assigning.')
+    def _input_reader(self, snakemake_input):
+        for key, filenames in snakemake_input.items():
+            yield key, util.alwayslist(filenames)
+    
+    def assign(self, snakemake_input):
+        for key, filenames in self._input_reader(snakemake_input):
+            if key not in self.rule_keys:
+                raise exception.RuleInputException('Unexpected input rule key: %s' % key)
 
-        if sequential: 
-            for f, input_f in zip(self.files, snakemake_input[self.rule_key]):
-                f.assign(input_f)
+            template_files_and_command_keys = util.alwayslist(self.template[key])
+            for filename, (template_file, _) in zip(filenames, template_files_and_command_keys):
+                template_file.assign(filename)
 
 class SimpleRuleInput(RuleInput):
     def __init__(self, template, name=None, desc=None):
@@ -32,22 +37,18 @@ class SimpleRuleInput(RuleInput):
         # Sanity check for the numbers of command keys.
         if len(self.rule_keys) > 1:
             raise exception.RuleInputException('%s does not accept more than one command key.' % self.describe())
-    
-    def _template_reader(self, template):
-        for template_files, command_keys in template:
-            template_files = util.alwayslist(template_files)
-
-            if command_key is None:
-                self.n_anonymous_keys += 1
-                command_key = '_anonymous_%d' % self.n_anonymous_keys
-            
-            yield template_files, command_keys
 
     def __str__(self):
-        if len(self.command_keys) == 0:
-            return '%s' % (self.files[0].infer_raw_name())
-        else:
-            return '%s %s' % (self.command_keys[0], self.files[0].infer_raw_name())
+        tmp = []
+        for _, template_files_and_command_keys in self.template.items():
+            for template_file, command_key in util.alwayslist(template_files_and_command_keys):
+                if command_key is not None:
+                    tmp.append('%s %s' % (template_file.infer_raw_name(), command_key))
+                else:
+                    tmp.append(template_file.infer_raw_name())
+        
+        return ' '.join(tmp)
+
 
 class MultiRuleInput(RuleInput):
     def __init__(self, rule_key, *command_keys, name=None, desc=None):

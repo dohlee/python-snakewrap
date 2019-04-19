@@ -1,4 +1,4 @@
-from snakewrap import exception
+from snakewrap import exception, util
 
 class RuleOutput():
     def __init__(self, template, name=None, desc=None):
@@ -17,13 +17,18 @@ class RuleOutput():
     def __str__(self):
         raise NotImplementedError
 
-    def assign(self, snakemake_input, sequential=True):
-        if self.files is None:
-            raise exception.TemplateNotSetException('Set template files before assigning.')
+    def _input_reader(self, snakemake_input):
+        for key, filenames in snakemake_input.items():
+            yield key, util.alwayslist(filenames)
 
-        if sequential: 
-            for f, input_f in zip(self.files, snakemake_input[self.rule_key]):
-                f.assign(input_f)
+    def assign(self, snakemake_input):
+        for key, filenames in self._input_reader(snakemake_input):
+            if key not in self.rule_keys:
+                raise exception.RuleInputException('Unexpected input rule key: %s' % key)
+
+            template_files_and_command_keys = util.alwayslist(self.template[key])
+            for filename, (template_file, _) in zip(filenames, template_files_and_command_keys):
+                template_file.assign(filename)
 
 class SimpleRuleOutput(RuleOutput):
     def __init__(self, template, name=None, desc=None):
@@ -32,17 +37,14 @@ class SimpleRuleOutput(RuleOutput):
         # Sanity check for the numbers of command keys.
         if len(self.rule_keys) != 1:
             raise exception.RuleInputException('%s requires only one command key.' % self.describe())
-    
-    def set_template(self, template):
-        try:
-            self.files = template[self.rule_key]
-            self.names = [f.name for f in self.files]
-        except KeyError:
-            raise exception.RuleInputException('Missing required output: %s' % self.rule_key)
-
-        # Sanity check for the numbers of input files.
-        if len(self.names) != 1:
-            raise exception.RuleInputException('%s requires only one output.' % self.describe())
 
     def __str__(self):
-        return '%s %s' % (self.command_keys[0], self.files[0].infer_raw_name())
+        tmp = []
+        for _, template_files_and_command_keys in self.template.items():
+            for template_file, command_key in util.alwayslist(template_files_and_command_keys):
+                if command_key is not None:
+                    tmp.append('%s %s' % (template_file.infer_raw_name(), command_key))
+                else:
+                    tmp.append(template_file.infer_raw_name())
+        
+        return ' '.join(tmp)

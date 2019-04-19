@@ -36,8 +36,15 @@ def test_samtools():
     # Create RuleThreads object.
     threads = sw.SimpleRuleThreads(command_key='-@')
 
-    wrapper = sw.Wrapper(snakemake, command='samtools sort')
+    wrapper = sw.Wrapper(
+        snakemake,
+        command='samtools sort',
+        input=input,
+        output=output,
+        params=params,
+        threads=threads,
+    )
 
-    expected_command = '(samtools sort test.bam -o test.sorted.bam -T test.sorted -@ 1) 2> logs/log.txt'
-    assert set(wrapper.get_command().split()) == set()
+    expected_shell_command = '(samtools sort test.bam -o test.sorted.bam -T test.sorted -@ 1) 2> logs/log.txt'
+    assert wrapper.shell_command() == expected_shell_command
     wrapper.run()
