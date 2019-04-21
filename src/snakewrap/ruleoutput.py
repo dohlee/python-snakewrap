@@ -43,7 +43,7 @@ class SimpleRuleOutput(RuleOutput):
         for _, template_files_and_command_keys in self.template.items():
             for template_file, command_key in util.alwayslist(template_files_and_command_keys):
                 if command_key is not None:
-                    tmp.append('%s %s' % (template_file.infer_raw_name(), command_key))
+                    tmp.append('%s %s' % (command_key, template_file.infer_raw_name()))
                 else:
                     tmp.append(template_file.infer_raw_name())
         

@@ -1,0 +1,8 @@
+rule all:
+    input: 'test.sorted.bam'
+
+rule write:
+    input: 'test.bam'
+    output: 'test.sorted.bam'
+    wrapper:
+        'https://dohlee-bio.info:9193/samtools/sort'

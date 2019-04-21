@@ -1,0 +1,15 @@
+rule all:
+    input:
+        'test.sorted.bam'
+
+rule samtools_sort:
+    input:
+        bam='{sample}.bam'
+    output:
+        sorted_bam='{sample}.sorted.bam'
+    params:
+        extra = ''
+    threads: 1
+    log: 'logs/samtools_sort/{sample}.log'
+    shell:
+        'https://dohlee-bio.info:9193/samtools/sort'
