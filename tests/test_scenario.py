@@ -1,35 +1,59 @@
 import snakewrap as sw
-from snakemake.workflow import Workflow
-from snakemake.script import Snakemake
 from os.path import join
 import os
 
+class NamedList():
+    def __init__(self, d):
+        self.d = d
+        for k, v in d.items():
+            setattr(self, k, v)
+    
+    def items(self):
+        return self.d.items()
 
-DATA_PATH = os.path.realpath(join(os.path.dirname(__file__), 'data'))
+class InputFiles(NamedList):
+    pass
 
-def get_snakemake_object(snakefile, rule_name):
-    w = Workflow(os.path.join(DATA_PATH, snakefile))
-    w.include(os.path.join(DATA_PATH, snakefile))
-    w.check()
-    r = w._rules[rule_name]
-    snakemake = Snakemake(
-        input=r._input,
-        output=r._output,
-        params=r._params,
-        wildcards=r._wildcard_names,
-        threads=r.resources['_cores'],
-        resources=r.resources,
-        log=r.log,
-        config=None,
-        rulename=r.name,
-        bench_iteration=1,
-    )
-    print(r.wildcard_constraints)
+class OutputFiles(NamedList):
+    pass
 
-    return snakemake
+class Params(NamedList):
+    pass
+
+class Wildcards(NamedList):
+    pass
+
+class MockSnakemake():
+    __slots__ = ['input', 'output', 'params', 'wildcards', 'log', 'threads']
+
+    def __init__(self, rule_dict):
+        setattr(self, 'input', InputFiles(rule_dict.get('input', {})))
+        setattr(self, 'output', OutputFiles(rule_dict.get('output', {})))
+        setattr(self, 'params', Params(rule_dict.get('params', {'extra': ''})))
+        setattr(self, 'wildcards', Wildcards(rule_dict.get('wildcards', {})))
+        setattr(self, 'log', rule_dict.get('log', ''))
+        setattr(self, 'threads', rule_dict.get('threads', 1))
+
+    def log_fmt_shell(self, stdout=True, stderr=True, append=False):
+        """Taken from https://bitbucket.org/snakemake/snakemake."""
+        if not self.log:
+            return ""
+        lookup = {
+            (True, True, True): " >> {0} 2>&1",
+            (True, False, True): " >> {0}",
+            (False, True, True): " 2>> {0}",
+            (True, True, False): " > {0} 2>&1",
+            (True, False, False): " > {0}",
+            (False, True, False): " 2> {0}",
+        }
+        return lookup[(stdout, stderr, append)].format(self.log)
 
 def test_samtools_sort():
-    snakemake = get_snakemake_object('samtools_sort_snakefile', 'samtools_sort')
+    snakemake = MockSnakemake({
+        'input': {'bam': 'test.bam'},
+        'output': {'sorted_bam': 'test.sorted.bam'},
+        'log': 'logs/samtools_sort/test.log',
+    })
 
     bam = sw.SimpleTemplateFile('bam')
     sorted_bam = sw.SimpleTemplateFile('sorted_bam')
@@ -47,7 +71,7 @@ def test_samtools_sort():
     # Create RuleParams object.
     params = sw.SimpleRuleParams(
         extra=True,
-        prefix=(lambda input, output: os.path.splitext(output['sorted_bam'])[0], '-T')
+        prefix=(lambda input, output: os.path.splitext(output.sorted_bam)[0], '-T')
     )
 
     # Create RuleThreads object.

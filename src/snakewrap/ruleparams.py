@@ -17,7 +17,7 @@ class RuleParams():
     
     def assign(self, snakemake):
         if self.include_extra:
-            self.extra = snakemake.params['extra']
+            self.extra = snakemake.params.extra
         
         for k, v in self.params.items():
             value, opt = v
