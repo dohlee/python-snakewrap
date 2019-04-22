@@ -89,3 +89,46 @@ def test_samtools_sort():
     expected_shell_command = '( samtools sort test.bam -o test.sorted.bam -T test.sorted -@ 1 ) 2> logs/samtools_sort/test.log'
     assert wrapper.shell_command() == expected_shell_command
     wrapper.run()
+
+def test_samtools_sort_with_extra():
+    snakemake = MockSnakemake({
+        'input': {'bam': 'test.bam'},
+        'output': {'sorted_bam': 'test.sorted.bam'},
+        'params': {'extra': '-l 9'},
+        'log': 'logs/samtools_sort/test.log',
+    })
+
+    bam = sw.SimpleTemplateFile('bam')
+    sorted_bam = sw.SimpleTemplateFile('sorted_bam')
+
+    # Create RuleInput object.
+    input = sw.SimpleRuleInput({
+        'bam': (bam, None),
+    })
+
+    # Create RuleOutput object.
+    output = sw.SimpleRuleOutput({
+        'sorted_bam': [(sorted_bam, '-o')],
+    })
+
+    # Create RuleParams object.
+    params = sw.SimpleRuleParams(
+        extra=True,
+        prefix=(lambda input, output: os.path.splitext(output.sorted_bam)[0], '-T')
+    )
+
+    # Create RuleThreads object.
+    threads = sw.SimpleRuleThreads(command_key='-@')
+
+    wrapper = sw.Wrapper(
+        snakemake,
+        command='samtools sort',
+        input=input,
+        output=output,
+        params=params,
+        threads=threads,
+    )
+
+    expected_shell_command = '( samtools sort test.bam -o test.sorted.bam -l 9 -T test.sorted -@ 1 ) 2> logs/samtools_sort/test.log'
+    assert wrapper.shell_command() == expected_shell_command
+    wrapper.run()

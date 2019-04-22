@@ -28,8 +28,8 @@ class RuleParams():
         return func(snakemake_input, snakemake_output)
 
     def __str__(self):
-        tmp = []
-        for k, v in self.params.items():
+        tmp = [] if not self.extra else [self.extra]
+        for _, v in self.params.items():
             value, opt = v
             if opt is None:
                 tmp.append(value)
