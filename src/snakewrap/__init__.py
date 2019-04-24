@@ -4,7 +4,7 @@ from snakewrap.files import SimpleTemplateFile, RenamedTemplateFile, SimpleTempl
 from snakewrap.ruleinput import SimpleRuleInput, MultiRuleInput, ListInput
 from snakewrap.ruleoutput import SimpleRuleOutput
 from snakewrap.ruleparams import SimpleRuleParams
-from snakewrap.rulethreads import SimpleRuleThreads
+from snakewrap.rulethreads import SimpleRuleThreads, ScaledRuleThreads
 from snakewrap.wrapper import Wrapper
 
 __all__ = [

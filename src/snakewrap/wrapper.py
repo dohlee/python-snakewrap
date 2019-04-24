@@ -10,7 +10,7 @@ class Wrapper:
         self.input.assign(snakemake.input)
         self.output.assign(snakemake.output)
         self.params.assign(snakemake)
-        self.threads.assign(snakemake.threads)
+        self.threads.assign(snakemake)
     
     def run(self):
         pass

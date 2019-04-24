@@ -14,10 +14,29 @@ class RuleThreads():
 
 class SimpleRuleThreads(RuleThreads):
     def __init__(self, command_key, name=None, desc=None):
-        super(SimpleRuleThreads, self).__init__(command_key, name=None, desc=None)
+        super(SimpleRuleThreads, self).__init__(command_key, name=name, desc=desc)
     
-    def assign(self, snakemake_threads):
+    def assign(self, snakemake):
         try:
-            self.num_threads = int(snakemake_threads)
+            self.num_threads = int(snakemake.threads)
         except ValueError:
             raise TypeError('Please give integer for the number of threads.')
+
+class ScaledRuleThreads(RuleThreads):
+    def __init__(self, command_key, scale, name=None, desc=None):
+        super(ScaledRuleThreads, self).__init__(command_key, name=name, desc=desc)
+        self.scale = scale
+    
+    def assign(self, snakemake):
+        # Compute scaler value.
+        scaler = self.scale(snakemake) if callable(self.scale) else self.scale
+
+        try:
+            self.num_threads = int(snakemake.threads)
+        except ValueError:
+            raise TypeError('Please give integer for the number of threads.')
+
+        self.num_threads = max(1, int(self.num_threads * scaler))
+
+
+        

@@ -162,9 +162,9 @@ def test_bismark_single_with_unzipped_fastq():
         raw_name='{prefix}_bismark_bt2.bam',
     )
     report = sw.RenamedTemplateFile(
-        'report',
-        r'(?P<prefix>.+?).bismark_report.txt',
-        '{prefix}_bismark_bt2_SE_report.txt'
+        name='report',
+        regex=r'(?P<prefix>.+?).bismark_report.txt',
+        raw_name='{prefix}_bismark_bt2_SE_report.txt'
     )
 
     # Define input, output, parameters, threads.
@@ -184,7 +184,11 @@ def test_bismark_single_with_unzipped_fastq():
         outdir=(lambda sn: os.path.dirname(sn.output.bam), '-o', True)
     )
 
-    threads = sw.SimpleRuleThreads(command_key='--multicore')
+    threads = sw.ScaledRuleThreads(
+        command_key='--multicore',
+        scale=lambda sn: 1/2 if '--bowtie1' in sn.params.extra else 1/3
+    )
+
     wrapper = sw.Wrapper(
         snakemake,
         command='bismark',
@@ -200,12 +204,13 @@ def test_bismark_single_with_unzipped_fastq():
     assert wrapper.shell_command() == \
         '( bismark reference/hg38_bismark data/test.fastq '\
         '-o result ' \
-        '--multicore 6 ' \
+        '--multicore 2 ' \
         '&& mv result/test_bismark_bt2.bam result/test.bismark.bam ' \
         '&& mv result/test_bismark_bt2_SE_report.txt result/test.bismark_report.txt ' \
         ') 2> logs/bismark/test.log' \
 
-def test_bismark_single_with_unzipped_fastq_bowtie1():
+
+def test_bismark_single_with_unzipped_fastq():
     snakemake = MockSnakemake({
         'input': {
             'fastq': 'data/test.fastq',
@@ -220,7 +225,7 @@ def test_bismark_single_with_unzipped_fastq_bowtie1():
             'sample': 'test',
         },
         'threads': 6,
-        'params': {'extra': ''},
+        'params': {'extra': '--bowtie1'},
         'log': 'logs/bismark/test.log',
     })
 
@@ -234,9 +239,9 @@ def test_bismark_single_with_unzipped_fastq_bowtie1():
         raw_name='{prefix}_bismark_bt2.bam',
     )
     report = sw.RenamedTemplateFile(
-        'report',
-        r'(?P<prefix>.+?).bismark_report.txt',
-        '{prefix}_bismark_bt2_SE_report.txt'
+        name='report',
+        regex=r'(?P<prefix>.+?).bismark_report.txt',
+        raw_name='{prefix}_bismark_bt2_SE_report.txt'
     )
 
     # Define input, output, parameters, threads.
@@ -256,7 +261,11 @@ def test_bismark_single_with_unzipped_fastq_bowtie1():
         outdir=(lambda sn: os.path.dirname(sn.output.bam), '-o', True)
     )
 
-    threads = sw.SimpleRuleThreads(command_key='--multicore')
+    threads = sw.ScaledRuleThreads(
+        command_key='--multicore',
+        scale=lambda sn: 1/2 if '--bowtie1' in sn.params.extra else 1/3
+    )
+
     wrapper = sw.Wrapper(
         snakemake,
         command='bismark',
@@ -271,8 +280,9 @@ def test_bismark_single_with_unzipped_fastq_bowtie1():
 
     assert wrapper.shell_command() == \
         '( bismark reference/hg38_bismark data/test.fastq '\
+        '--bowtie1 ' \
         '-o result ' \
-        '--multicore 6 ' \
+        '--multicore 3 ' \
         '&& mv result/test_bismark_bt2.bam result/test.bismark.bam ' \
         '&& mv result/test_bismark_bt2_SE_report.txt result/test.bismark_report.txt ' \
         ') 2> logs/bismark/test.log' \
