@@ -20,17 +20,20 @@ class RuleParams():
             self.extra = snakemake.params.extra
         
         for k, v in self.params.items():
-            value, opt = v
+            value, opt, to_command = v
             if callable(value):
-                self.params[k] = (self._infer_parameter_with_function(value, snakemake.input, snakemake.output), opt)
+                self.params[k] = (self._infer_parameter_with_function(value, snakemake), opt, to_command)
 
-    def _infer_parameter_with_function(self, func, snakemake_input, snakemake_output):
-        return func(snakemake_input, snakemake_output)
+    def _infer_parameter_with_function(self, func, snakemake):
+        return func(snakemake)
 
     def __str__(self):
         tmp = [] if not self.extra else [self.extra]
         for _, v in self.params.items():
-            value, opt = v
+            value, opt, to_command = v
+            if not to_command:
+                continue
+
             if opt is None:
                 tmp.append(value)
             else:
@@ -41,4 +44,3 @@ class RuleParams():
 class SimpleRuleParams(RuleParams):
     def __init__(self, extra=True, **kwargs):
         super(SimpleRuleParams, self).__init__(extra, **kwargs)
-

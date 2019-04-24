@@ -21,6 +21,10 @@ class Wrapper:
         command.append(str(self.output))
         command.append(str(self.params))
         command.append(str(self.threads))
+
+        rename_command = self.output.rename_command()
+        if rename_command:
+            command.append('&& ' + rename_command)
         if self.snakemake.log:
             command.append(')' + self.snakemake.log_fmt_shell(stdout=False, stderr=True))
-        return ' '.join(command)
+        return ' '.join(filter(lambda x: x, command))  # Discard empty strings, then join.

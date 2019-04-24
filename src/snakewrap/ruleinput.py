@@ -26,27 +26,26 @@ class RuleInput():
             if key not in self.rule_keys:
                 raise exception.RuleInputException('Unexpected input rule key: %s' % key)
 
-            template_files_and_command_keys = util.alwayslist(self.template[key])
-            for filename, (template_file, _) in zip(filenames, template_files_and_command_keys):
+            this_template = util.alwayslist(self.template[key])
+            for filename, (template_file, _, _) in zip(filenames, this_template):
                 template_file.assign(filename)
 
 class SimpleRuleInput(RuleInput):
     def __init__(self, template, name=None, desc=None):
         super(SimpleRuleInput, self).__init__(template, name=name, desc=desc)
 
-        # Sanity check for the numbers of command keys.
-        if len(self.rule_keys) > 1:
-            raise exception.RuleInputException('%s does not accept more than one command key.' % self.describe())
-
     def __str__(self):
         tmp = []
-        for _, template_files_and_command_keys in self.template.items():
-            for template_file, command_key in util.alwayslist(template_files_and_command_keys):
+        for _, this_template in self.template.items():
+            for template_file, command_key, to_command in util.alwayslist(this_template):
+                if not to_command:
+                    continue
+
                 if command_key is not None:
                     tmp.append('%s %s' % (template_file.infer_raw_name(), command_key))
                 else:
                     tmp.append(template_file.infer_raw_name())
-        
+
         return ' '.join(tmp)
 
 

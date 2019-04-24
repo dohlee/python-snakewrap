@@ -27,10 +27,10 @@ class MockSnakemake():
     __slots__ = ['input', 'output', 'params', 'wildcards', 'log', 'threads']
 
     def __init__(self, rule_dict):
-        setattr(self, 'input', InputFiles(rule_dict.get('input', {})))
-        setattr(self, 'output', OutputFiles(rule_dict.get('output', {})))
+        setattr(self, 'input', InputFiles(rule_dict.get('input', dict())))
+        setattr(self, 'output', OutputFiles(rule_dict.get('output', dict())))
         setattr(self, 'params', Params(rule_dict.get('params', {'extra': ''})))
-        setattr(self, 'wildcards', Wildcards(rule_dict.get('wildcards', {})))
+        setattr(self, 'wildcards', Wildcards(rule_dict.get('wildcards', dict())))
         setattr(self, 'log', rule_dict.get('log', ''))
         setattr(self, 'threads', rule_dict.get('threads', 1))
 
@@ -60,18 +60,18 @@ def test_samtools_sort():
 
     # Create RuleInput object.
     input = sw.SimpleRuleInput({
-        'bam': (bam, None),
+        'bam': (bam, None, True),
     })
 
     # Create RuleOutput object.
     output = sw.SimpleRuleOutput({
-        'sorted_bam': [(sorted_bam, '-o')],
+        'sorted_bam': [(sorted_bam, '-o', True)],
     })
 
     # Create RuleParams object.
     params = sw.SimpleRuleParams(
         extra=True,
-        prefix=(lambda input, output: os.path.splitext(output.sorted_bam)[0], '-T')
+        prefix=(lambda sn: os.path.splitext(sn.output.sorted_bam)[0], '-T', True)
     )
 
     # Create RuleThreads object.
@@ -103,18 +103,18 @@ def test_samtools_sort_with_extra():
 
     # Create RuleInput object.
     input = sw.SimpleRuleInput({
-        'bam': (bam, None),
+        'bam': (bam, None, True),
     })
 
     # Create RuleOutput object.
     output = sw.SimpleRuleOutput({
-        'sorted_bam': [(sorted_bam, '-o')],
+        'sorted_bam': [(sorted_bam, '-o', True)],
     })
 
     # Create RuleParams object.
     params = sw.SimpleRuleParams(
         extra=True,
-        prefix=(lambda input, output: os.path.splitext(output.sorted_bam)[0], '-T')
+        prefix=(lambda sn: os.path.splitext(sn.output.sorted_bam)[0], '-T', True)
     )
 
     # Create RuleThreads object.
@@ -132,3 +132,147 @@ def test_samtools_sort_with_extra():
     expected_shell_command = '( samtools sort test.bam -o test.sorted.bam -l 9 -T test.sorted -@ 1 ) 2> logs/samtools_sort/test.log'
     assert wrapper.shell_command() == expected_shell_command
     wrapper.run()
+
+def test_bismark_single_with_unzipped_fastq():
+    snakemake = MockSnakemake({
+        'input': {
+            'fastq': 'data/test.fastq',
+            'reference_dir': 'reference/hg38_bismark',
+            'bisulfite_genome_dir': 'reference/hg38_bismark/Bisulfite_Genome',
+        },
+        'output': {
+            'bam': 'result/test.bismark.bam',
+            'report': 'result/test.bismark_report.txt',
+        },
+        'wildcards': {
+            'sample': 'test',
+        },
+        'threads': 6,
+        'params': {'extra': ''},
+        'log': 'logs/bismark/test.log',
+    })
+
+    # Define files.
+    fastq = sw.SimpleTemplateFile('fastq')
+    reference_dir = sw.SimpleTemplateDirectory('reference_dir')
+    bisulfite_genome_dir = sw.SimpleTemplateDirectory('bisulfite_genome_dir')
+    bam = sw.RenamedTemplateFile(
+        name='bam',
+        regex=r'(?P<prefix>.+?).bismark.bam',
+        raw_name='{prefix}_bismark_bt2.bam',
+    )
+    report = sw.RenamedTemplateFile(
+        'report',
+        r'(?P<prefix>.+?).bismark_report.txt',
+        '{prefix}_bismark_bt2_SE_report.txt'
+    )
+
+    # Define input, output, parameters, threads.
+    input = sw.SimpleRuleInput({
+        'reference_dir': (reference_dir, None, True),
+        'fastq': (fastq, None, True),
+        'bisulfite_genome_dir': (bisulfite_genome_dir, None, False)
+    })
+
+    output = sw.SimpleRuleOutput({
+        'bam': (bam, None, False),
+        'report': (report, None, False),
+    })
+
+    params = sw.SimpleRuleParams(
+        extra=True,
+        outdir=(lambda sn: os.path.dirname(sn.output.bam), '-o', True)
+    )
+
+    threads = sw.SimpleRuleThreads(command_key='--multicore')
+    wrapper = sw.Wrapper(
+        snakemake,
+        command='bismark',
+        input=input,
+        output=output,
+        params=params,
+        threads=threads,
+    )
+
+    assert bam.rename_command() == 'mv result/test_bismark_bt2.bam result/test.bismark.bam'
+    assert report.rename_command() == 'mv result/test_bismark_bt2_SE_report.txt result/test.bismark_report.txt'
+
+    assert wrapper.shell_command() == \
+        '( bismark reference/hg38_bismark data/test.fastq '\
+        '-o result ' \
+        '--multicore 6 ' \
+        '&& mv result/test_bismark_bt2.bam result/test.bismark.bam ' \
+        '&& mv result/test_bismark_bt2_SE_report.txt result/test.bismark_report.txt ' \
+        ') 2> logs/bismark/test.log' \
+
+def test_bismark_single_with_unzipped_fastq_bowtie1():
+    snakemake = MockSnakemake({
+        'input': {
+            'fastq': 'data/test.fastq',
+            'reference_dir': 'reference/hg38_bismark',
+            'bisulfite_genome_dir': 'reference/hg38_bismark/Bisulfite_Genome',
+        },
+        'output': {
+            'bam': 'result/test.bismark.bam',
+            'report': 'result/test.bismark_report.txt',
+        },
+        'wildcards': {
+            'sample': 'test',
+        },
+        'threads': 6,
+        'params': {'extra': ''},
+        'log': 'logs/bismark/test.log',
+    })
+
+    # Define files.
+    fastq = sw.SimpleTemplateFile('fastq')
+    reference_dir = sw.SimpleTemplateDirectory('reference_dir')
+    bisulfite_genome_dir = sw.SimpleTemplateDirectory('bisulfite_genome_dir')
+    bam = sw.RenamedTemplateFile(
+        name='bam',
+        regex=r'(?P<prefix>.+?).bismark.bam',
+        raw_name='{prefix}_bismark_bt2.bam',
+    )
+    report = sw.RenamedTemplateFile(
+        'report',
+        r'(?P<prefix>.+?).bismark_report.txt',
+        '{prefix}_bismark_bt2_SE_report.txt'
+    )
+
+    # Define input, output, parameters, threads.
+    input = sw.SimpleRuleInput({
+        'reference_dir': (reference_dir, None, True),
+        'fastq': (fastq, None, True),
+        'bisulfite_genome_dir': (bisulfite_genome_dir, None, False)
+    })
+
+    output = sw.SimpleRuleOutput({
+        'bam': (bam, None, False),
+        'report': (report, None, False),
+    })
+
+    params = sw.SimpleRuleParams(
+        extra=True,
+        outdir=(lambda sn: os.path.dirname(sn.output.bam), '-o', True)
+    )
+
+    threads = sw.SimpleRuleThreads(command_key='--multicore')
+    wrapper = sw.Wrapper(
+        snakemake,
+        command='bismark',
+        input=input,
+        output=output,
+        params=params,
+        threads=threads,
+    )
+
+    assert bam.rename_command() == 'mv result/test_bismark_bt2.bam result/test.bismark.bam'
+    assert report.rename_command() == 'mv result/test_bismark_bt2_SE_report.txt result/test.bismark_report.txt'
+
+    assert wrapper.shell_command() == \
+        '( bismark reference/hg38_bismark data/test.fastq '\
+        '-o result ' \
+        '--multicore 6 ' \
+        '&& mv result/test_bismark_bt2.bam result/test.bismark.bam ' \
+        '&& mv result/test_bismark_bt2_SE_report.txt result/test.bismark_report.txt ' \
+        ') 2> logs/bismark/test.log' \
