@@ -2,26 +2,32 @@ import snakewrap as sw
 from os.path import join
 import os
 
+
 class NamedList():
     def __init__(self, d):
         self.d = d
         for k, v in d.items():
             setattr(self, k, v)
-    
+
     def items(self):
         return self.d.items()
+
 
 class InputFiles(NamedList):
     pass
 
+
 class OutputFiles(NamedList):
     pass
+
 
 class Params(NamedList):
     pass
 
+
 class Wildcards(NamedList):
     pass
+
 
 class MockSnakemake():
     __slots__ = ['input', 'output', 'params', 'wildcards', 'log', 'threads']
@@ -47,6 +53,7 @@ class MockSnakemake():
             (False, True, False): " 2> {0}",
         }
         return lookup[(stdout, stderr, append)].format(self.log)
+
 
 def test_samtools_sort():
     snakemake = MockSnakemake({
@@ -90,6 +97,7 @@ def test_samtools_sort():
     assert wrapper.shell_command() == expected_shell_command
     wrapper.run()
 
+
 def test_samtools_sort_with_extra():
     snakemake = MockSnakemake({
         'input': {'bam': 'test.bam'},
@@ -132,6 +140,7 @@ def test_samtools_sort_with_extra():
     expected_shell_command = '( samtools sort test.bam -o test.sorted.bam -l 9 -T test.sorted -@ 1 ) 2> logs/samtools_sort/test.log'
     assert wrapper.shell_command() == expected_shell_command
     wrapper.run()
+
 
 def test_bismark_single_with_unzipped_fastq():
     snakemake = MockSnakemake({
@@ -208,6 +217,8 @@ def test_bismark_single_with_unzipped_fastq():
         '&& mv result/test_bismark_bt2.bam result/test.bismark.bam ' \
         '&& mv result/test_bismark_bt2_SE_report.txt result/test.bismark_report.txt ' \
         ') 2> logs/bismark/test.log' \
+
+
 
 def test_bismark_single_with_unzipped_fastq_bowtie1():
     snakemake = MockSnakemake({
@@ -286,6 +297,8 @@ def test_bismark_single_with_unzipped_fastq_bowtie1():
         '&& mv result/test_bismark_bt2_SE_report.txt result/test.bismark_report.txt ' \
         ') 2> logs/bismark/test.log' \
 
+
+
 def test_bismark_paired_with_unzipped_fastq():
     snakemake = MockSnakemake({
         'input': {
@@ -362,6 +375,8 @@ def test_bismark_paired_with_unzipped_fastq():
         '&& mv result/test.read1_bismark_bt2_PE_report.txt result/test.bismark_report.txt ' \
         ') 2> logs/bismark/test.log' \
 
+
+
 def test_bismark_paired_with_zipped_fastq():
     snakemake = MockSnakemake({
         'input': {
@@ -436,7 +451,9 @@ def test_bismark_paired_with_zipped_fastq():
         '&& mv result/test.read1_bismark_bt2_pe.bam result/test.bismark.bam ' \
         '&& mv result/test.read1_bismark_bt2_PE_report.txt result/test.bismark_report.txt ' \
         ') 2> logs/bismark/test.log' \
-    
+
+
+
 def test_bismark_genome_preparation():
     # Define mock snakemake object.
     snakemake = MockSnakemake({

@@ -19,10 +19,14 @@ class Wrapper:
     
     def shell_command(self):
         command = ['(', self.command] if self.snakemake.log else [self.command]
-        command.append(str(self.input))
-        command.append(str(self.output))
-        command.append(str(self.params))
-        command.append(str(self.threads))
+        if self.input:
+            command.append(str(self.input))
+        if self.output:
+            command.append(str(self.output))
+        if self.params:
+            command.append(str(self.params))
+        if self.threads:
+            command.append(str(self.threads))
 
         rename_command = self.output.rename_command()
         if rename_command:
