@@ -41,6 +41,10 @@ class SimpleRuleOutput(RuleOutput):
             for parameter in util.alwayslist(this_template):
                 if not parameter.used:
                     continue
+                
+                # Do not return output file which will be redirected.
+                if parameter.redirected:
+                    continue
 
                 fname, priority = parameter.f.infer_raw_name(), parameter.priority
                 if parameter.option is not None:
@@ -59,3 +63,11 @@ class SimpleRuleOutput(RuleOutput):
                     tmp.append(parameter.f.rename_command())
         
         return ' && '.join(tmp)
+    
+    def redirect_command(self):
+        for _, this_template in self.template.items():
+            for parameter in util.alwayslist(this_template):
+                if parameter.redirected:
+                    return '> ' + parameter.f.infer_raw_name()
+        return ''
+

@@ -509,6 +509,8 @@ def test_bwa_mem_single():
         'threads': 12,
     })
 
+    expected_command = '( bwa mem reference/hg38/hg38 test.fastq.gz -t 12 | samtools view -Sb - > test.bam ) 2> logs/bwa_mem/test.log'
+
     # Define files.
     reference = sw.SimpleTemplateFile('reference')
     read = sw.SimpleTemplateFile('reads')
@@ -517,11 +519,28 @@ def test_bwa_mem_single():
     # Define input, output, parameters and threads.
     input = sw.SimpleRuleInput({
         'reference': Parameter(f=reference, option=None, used=False),
-        'read': Parameter(f=read, option=None),
+        'reads': [Parameter(f=read, option=None)],
     })
 
     output = sw.SimpleRuleOutput({
-        'bam': Parameter(bam, None)
+        'bam': Parameter(f=bam, option=None, used=True, redirected=True),
     })
 
-    expected_command = 'bwa mem reference/hg38/hg38 test.fastq.gz -t 12'
+    threads = sw.SimpleRuleThreads(command_key='-t')
+
+    params = sw.SimpleRuleParams(
+        extra=True,
+        db_prefix=Parameter(f=lambda sn: os.path.splitext(sn.input.reference)[0], option=None, priority=1),
+        pipe_command=Parameter(f=lambda sn: '| samtools view -Sb -' if sn.output.bam.endswith('.bam') else '', option=None, priority=100)
+    )
+
+    wrapper = sw.Wrapper(
+        snakemake=snakemake,
+        command='bwa mem',
+        input=input,
+        output=output,
+        threads=threads,
+        params=params,
+    )
+
+    assert wrapper.shell_command() == expected_command

@@ -30,10 +30,12 @@ class Wrapper:
             options.extend(self.threads.get_options())
         
         # Sort commands according to the priorities.
-        options_with_priority = list(sorted([opt for opt, pr in options if pr is not None]))
+        options_with_high_priority = list(sorted([opt for opt, pr in options if pr is not None and pr < 100]))
+        options_with_low_priority = list(sorted([opt for opt, pr in options if pr is not None and pr >= 100]))
         options_without_priority = [opt for opt, pr in options if pr is None]
-        options = options_with_priority + options_without_priority
+        options = options_with_high_priority + options_without_priority + options_with_low_priority
 
+        options.append(self.output.redirect_command())
         rename_command = self.output.rename_command()
         if rename_command:
             options.append('&& ' + rename_command)
