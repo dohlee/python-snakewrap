@@ -14,7 +14,7 @@ class RuleInput():
         else:
             return 'Input %s' % self.rule_keys
 
-    def __str__(self):
+    def get_options(self):
         raise NotImplementedError
 
     def _input_reader(self, snakemake_input):
@@ -27,27 +27,28 @@ class RuleInput():
                 raise exception.RuleInputException('Unexpected input rule key: %s' % key)
 
             this_template = util.alwayslist(self.template[key])
-            for filename, (template_file, _, _) in zip(filenames, this_template):
-                template_file.assign(filename)
+            for filename, parameter in zip(filenames, this_template):
+                parameter.f.assign(filename)
 
 class SimpleRuleInput(RuleInput):
     def __init__(self, template, name=None, desc=None):
         super(SimpleRuleInput, self).__init__(template, name=name, desc=desc)
 
-    def __str__(self):
-        tmp = []
+    def get_options(self):
+        options = []
         for _, this_template in self.template.items():
-            for template_file, command_key, to_command in util.alwayslist(this_template):
-                if not to_command:
+            for parameter in util.alwayslist(this_template):
+                if not parameter.used:
                     continue
 
-                if command_key is not None:
-                    tmp.append('%s %s' % (command_key, template_file.infer_raw_name()))
+                fname, priority = parameter.f.infer_raw_name(), parameter.priority
+                if parameter.option is not None:
+                    option = ' '.join([parameter.option, fname])
+                    options.append((option, priority))
                 else:
-                    tmp.append(template_file.infer_raw_name())
+                    options.append((fname, priority))
 
-        return ' '.join(tmp)
-
+        return options
 
 class MultiRuleInput(RuleInput):
     def __init__(self, rule_key, *command_keys, name=None, desc=None):
@@ -55,10 +56,10 @@ class MultiRuleInput(RuleInput):
 
     def set_template(self, snakemake_input):
         try:
-            self.files = snakemake_input[self.rule_key]
+            self.files = snakemake_input[self.rule_keys]
             self.names = [f.name for f in self.files]
         except KeyError:
-            raise exception.RuleInputException('Missing required input: %s' % self.rule_key)
+            raise exception.RuleInputException('Missing required input: %s' % self.rule_keys)
         
         if len(self.names) < 2:
             raise exception.RuleInputException('%s requires more than one inputs.' % self.describe())

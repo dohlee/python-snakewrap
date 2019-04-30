@@ -1,3 +1,5 @@
+from snakewrap.parameter import Parameter
+
 class RuleParams():
     def __init__(self, extra=True, **kwargs):
         """Base class for rule parameters.
@@ -19,27 +21,31 @@ class RuleParams():
         if self.include_extra:
             self.extra = snakemake.params.extra
         
-        for k, v in self.params.items():
-            value, opt, to_command = v
-            if callable(value):
-                self.params[k] = (self._infer_parameter_with_function(value, snakemake), opt, to_command)
+        for key, parameter in self.params.items():
+            if callable(parameter.f):
+                self.params[key] = Parameter(
+                    self._infer_parameter_with_function(parameter.f, snakemake), 
+                    parameter.option,
+                    parameter.used,
+                    parameter.redirected,
+                    parameter.priority
+                )
 
     def _infer_parameter_with_function(self, func, snakemake):
         return func(snakemake)
 
-    def __str__(self):
-        tmp = [] if not self.extra else [self.extra]
-        for _, v in self.params.items():
-            value, opt, to_command = v
-            if not to_command:
+    def get_options(self):
+        options = [] if not self.extra else [(self.extra, None)]
+        for _, parameter in self.params.items():
+            if not parameter.used:
                 continue
-
-            if opt is None:
-                tmp.append(value)
+            
+            if parameter.option is None:
+                options.append((parameter.f, parameter.priority))
             else:
-                tmp.append('%s %s' % (opt, value))
-
-        return ' '.join(tmp)
+                options.append((' '.join([parameter.option, parameter.f]), parameter.priority))
+        
+        return options
 
 class SimpleRuleParams(RuleParams):
     def __init__(self, extra=True, **kwargs):

@@ -15,7 +15,7 @@ class RuleOutput():
         else:
             return 'Output %s' % self.rule_keys
 
-    def __str__(self):
+    def get_options(self):
         raise NotImplementedError
 
     def _input_reader(self, snakemake_input):
@@ -28,32 +28,34 @@ class RuleOutput():
                 raise exception.RuleInputException('Unexpected input rule key: %s' % key)
 
             this_template = util.alwayslist(self.template[key])
-            for filename, (template_file, _, _) in zip(filenames, this_template):
-                template_file.assign(filename)
+            for filename, parameter in zip(filenames, this_template):
+                parameter.f.assign(filename)
 
 class SimpleRuleOutput(RuleOutput):
     def __init__(self, template, name=None, desc=None):
         super(SimpleRuleOutput, self).__init__(template, name, desc)
 
-    def __str__(self):
-        tmp = []
+    def get_options(self):
+        options = []
         for _, this_template in self.template.items():
-            for template_file, command_key, to_command in util.alwayslist(this_template):
-                if not to_command:
+            for parameter in util.alwayslist(this_template):
+                if not parameter.used:
                     continue
 
-                if command_key is not None:
-                    tmp.append('%s %s' % (command_key, template_file.infer_raw_name()))
+                fname, priority = parameter.f.infer_raw_name(), parameter.priority
+                if parameter.option is not None:
+                    option = ' '.join([parameter.option, fname])
+                    options.append((option, priority))
                 else:
-                    tmp.append(template_file.infer_raw_name())
-    
-        return ' '.join(tmp)
+                    options.append((fname, priority))
+
+        return options
     
     def rename_command(self):
         tmp = []
         for _, this_template in self.template.items():
-            for template_file, command_key, to_command in util.alwayslist(this_template):
-                if isinstance(template_file, RenamedTemplateFile):
-                    tmp.append(template_file.rename_command())
+            for parameter in util.alwayslist(this_template):
+                if isinstance(parameter.f, RenamedTemplateFile):
+                    tmp.append(parameter.f.rename_command())
         
         return ' && '.join(tmp)

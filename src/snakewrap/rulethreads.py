@@ -9,6 +9,9 @@ class RuleThreads():
     def assign(self, snakemake_threads):
         raise NotImplementedError
 
+    def get_options(self):
+        return [('%s %d' % (self.command_key, self.num_threads), None)]
+
     def __str__(self):
         return '%s %d' % (self.command_key, self.num_threads)
 

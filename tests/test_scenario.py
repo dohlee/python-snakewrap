@@ -1,4 +1,5 @@
 import snakewrap as sw
+from snakewrap.parameter import Parameter
 from os.path import join
 import os
 
@@ -67,18 +68,18 @@ def test_samtools_sort():
 
     # Create RuleInput object.
     input = sw.SimpleRuleInput({
-        'bam': (bam, None, True),
+        'bam': Parameter(f=bam, option=None),
     })
 
     # Create RuleOutput object.
     output = sw.SimpleRuleOutput({
-        'sorted_bam': [(sorted_bam, '-o', True)],
+        'sorted_bam': [Parameter(f=sorted_bam, option='-o')],
     })
 
     # Create RuleParams object.
     params = sw.SimpleRuleParams(
         extra=True,
-        prefix=(lambda sn: os.path.splitext(sn.output.sorted_bam)[0], '-T', True)
+        prefix=Parameter(f=lambda sn: os.path.splitext(sn.output.sorted_bam)[0], option='-T')
     )
 
     # Create RuleThreads object.
@@ -111,18 +112,18 @@ def test_samtools_sort_with_extra():
 
     # Create RuleInput object.
     input = sw.SimpleRuleInput({
-        'bam': (bam, None, True),
+        'bam': Parameter(f=bam, option=None),
     })
 
     # Create RuleOutput object.
     output = sw.SimpleRuleOutput({
-        'sorted_bam': [(sorted_bam, '-o', True)],
+        'sorted_bam': [Parameter(f=sorted_bam, option='-o')],
     })
 
     # Create RuleParams object.
     params = sw.SimpleRuleParams(
         extra=True,
-        prefix=(lambda sn: os.path.splitext(sn.output.sorted_bam)[0], '-T', True)
+        prefix=Parameter(f=lambda sn: os.path.splitext(sn.output.sorted_bam)[0], option='-T')
     )
 
     # Create RuleThreads object.
@@ -178,19 +179,19 @@ def test_bismark_single_with_unzipped_fastq():
 
     # Define input, output, parameters, threads.
     input = sw.SimpleRuleInput({
-        'reference_dir': (reference_dir, None, True),
-        'fastq': (fastq, None, True),
-        'bisulfite_genome_dir': (bisulfite_genome_dir, None, False)
+        'reference_dir': Parameter(f=reference_dir, option=None),
+        'fastq': Parameter(f=fastq, option=None),
+        'bisulfite_genome_dir': Parameter(f=bisulfite_genome_dir, option=None, used=False)
     })
 
     output = sw.SimpleRuleOutput({
-        'bam': (bam, None, False),
-        'report': (report, None, False),
+        'bam': Parameter(f=bam, option=None, used=False),
+        'report': Parameter(f=report, option=None, used=False),
     })
 
     params = sw.SimpleRuleParams(
         extra=True,
-        outdir=(lambda sn: os.path.dirname(sn.output.bam), '-o', True)
+        outdir=Parameter(f=lambda sn: os.path.dirname(sn.output.bam), option='-o', used=True)
     )
 
     threads = sw.ScaledRuleThreads(
@@ -256,19 +257,19 @@ def test_bismark_single_with_unzipped_fastq_bowtie1():
 
     # Define input, output, parameters, threads.
     input = sw.SimpleRuleInput({
-        'reference_dir': (reference_dir, None, True),
-        'fastq': (fastq, None, True),
-        'bisulfite_genome_dir': (bisulfite_genome_dir, None, False)
+        'reference_dir': Parameter(f=reference_dir, option=None),
+        'fastq': Parameter(f=fastq, option=None),
+        'bisulfite_genome_dir': Parameter(f=bisulfite_genome_dir, option=None, used=False),
     })
 
     output = sw.SimpleRuleOutput({
-        'bam': (bam, None, False),
-        'report': (report, None, False),
+        'bam': Parameter(f=bam, option=None, used=False),
+        'report': Parameter(f=report, option=None, used=False),
     })
 
     params = sw.SimpleRuleParams(
         extra=True,
-        outdir=(lambda sn: os.path.dirname(sn.output.bam), '-o', True)
+        outdir=Parameter(lambda sn: os.path.dirname(sn.output.bam), '-o', True)
     )
 
     threads = sw.ScaledRuleThreads(
@@ -336,19 +337,19 @@ def test_bismark_paired_with_unzipped_fastq():
 
     # Define input, output, parameters, threads.
     input = sw.SimpleRuleInput({
-        'reference_dir': (reference_dir, None, True),
-        'fastq': [(read1, '-1', True), (read2, '-2', True)],
-        'bisulfite_genome_dir': (bisulfite_genome_dir, None, False)
+        'reference_dir': Parameter(f=reference_dir, option=None),
+        'fastq': [Parameter(f=read1, option='-1'), Parameter(f=read2, option='-2')],
+        'bisulfite_genome_dir': Parameter(f=bisulfite_genome_dir, option=None, used=False),
     })
 
     output = sw.SimpleRuleOutput({
-        'bam': (bam, None, False),
-        'report': (report, None, False),
+        'bam': Parameter(f=bam, option=None, used=False),
+        'report': Parameter(f=report, option=None, used=False),
     })
 
     params = sw.SimpleRuleParams(
         extra=True,
-        outdir=(lambda sn: os.path.dirname(sn.output.bam), '-o', True)
+        outdir=Parameter(f=lambda sn: os.path.dirname(sn.output.bam), option='-o')
     )
 
     threads = sw.ScaledRuleThreads(
@@ -374,7 +375,6 @@ def test_bismark_paired_with_unzipped_fastq():
         '&& mv result/test.read1_bismark_bt2_pe.bam result/test.bismark.bam ' \
         '&& mv result/test.read1_bismark_bt2_PE_report.txt result/test.bismark_report.txt ' \
         ') 2> logs/bismark/test.log' \
-
 
 
 def test_bismark_paired_with_zipped_fastq():
@@ -413,19 +413,19 @@ def test_bismark_paired_with_zipped_fastq():
     )
 
     input = sw.SimpleRuleInput({
-        'reference_dir': (reference_dir, None, True),
-        'fastq': [(read1, '-1', True), (read2, '-2', True)],
-        'bisulfite_genome_dir': (bisulfite_genome_dir, None, False)
+        'reference_dir': Parameter(reference_dir, None),
+        'fastq': [Parameter(read1, '-1'), Parameter(read2, '-2')],
+        'bisulfite_genome_dir': Parameter(bisulfite_genome_dir, None, False)
     })
 
     output = sw.SimpleRuleOutput({
-        'bam': (bam, None, False),
-        'report': (report, None, False),
+        'bam': Parameter(bam, None, False),
+        'report': Parameter(report, None, False),
     })
 
     params = sw.SimpleRuleParams(
         extra=True,
-        outdir=(lambda sn: os.path.dirname(sn.output.bam), '-o', True)
+        outdir=Parameter(lambda sn: os.path.dirname(sn.output.bam), '-o', True)
     )
 
     threads = sw.ScaledRuleThreads(
@@ -451,8 +451,7 @@ def test_bismark_paired_with_zipped_fastq():
         '&& mv result/test.read1_bismark_bt2_pe.bam result/test.bismark.bam ' \
         '&& mv result/test.read1_bismark_bt2_PE_report.txt result/test.bismark_report.txt ' \
         ') 2> logs/bismark/test.log' \
-
-
+    
 
 def test_bismark_genome_preparation():
     # Define mock snakemake object.
@@ -475,11 +474,11 @@ def test_bismark_genome_preparation():
 
     # Define input, output, and parameters.
     input = sw.SimpleRuleInput({
-        'reference_dir': (reference_dir, None, True),
+        'reference_dir': Parameter(reference_dir, None),
     })
 
     output = sw.SimpleRuleOutput({
-        'bisulfite_genome_dir': (bisulfite_genome_dir, None, False),
+        'bisulfite_genome_dir': Parameter(bisulfite_genome_dir, None, False),
     })
 
     params = sw.SimpleRuleParams(extra=True)
@@ -492,3 +491,37 @@ def test_bismark_genome_preparation():
         params=params,
     )
     assert wrapper.shell_command() == '( bismark_genome_preparation reference/hg38 ) 2> logs/bismark_genome_preparation/log.log'
+
+def test_bwa_mem_single():
+    # Define mock snakemake object.
+    snakemake = MockSnakemake({
+        'input': {
+            'reference': 'reference/hg38/hg38.fasta',
+            'reads': ['test.fastq.gz'],
+        },
+        'output': {
+            'bam': 'test.bam',
+        },
+        'params': {
+            'extra': '',
+        },
+        'log': 'logs/bwa_mem/test.log',
+        'threads': 12,
+    })
+
+    # Define files.
+    reference = sw.SimpleTemplateFile('reference')
+    read = sw.SimpleTemplateFile('reads')
+    bam = sw.SimpleTemplateFile('bam')
+
+    # Define input, output, parameters and threads.
+    input = sw.SimpleRuleInput({
+        'reference': Parameter(f=reference, option=None, used=False),
+        'read': Parameter(f=read, option=None),
+    })
+
+    output = sw.SimpleRuleOutput({
+        'bam': Parameter(bam, None)
+    })
+
+    expected_command = 'bwa mem reference/hg38/hg38 test.fastq.gz -t 12'

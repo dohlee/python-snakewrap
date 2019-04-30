@@ -18,19 +18,25 @@ class Wrapper:
         pass
     
     def shell_command(self):
-        command = ['(', self.command] if self.snakemake.log else [self.command]
+        # -1 denotes absolute priority. Those commands SHOULD come at the first of the command.
+        options = [('(', -1), (self.command, -1)] if self.snakemake.log else [(self.command, -1)]
         if self.input:
-            command.append(str(self.input))
+            options.extend(self.input.get_options())
         if self.output:
-            command.append(str(self.output))
+            options.extend(self.output.get_options())
         if self.params:
-            command.append(str(self.params))
+            options.extend(self.params.get_options())
         if self.threads:
-            command.append(str(self.threads))
+            options.extend(self.threads.get_options())
+        
+        # Sort commands according to the priorities.
+        options_with_priority = list(sorted([opt for opt, pr in options if pr is not None]))
+        options_without_priority = [opt for opt, pr in options if pr is None]
+        options = options_with_priority + options_without_priority
 
         rename_command = self.output.rename_command()
         if rename_command:
-            command.append('&& ' + rename_command)
+            options.append('&& ' + rename_command)
         if self.snakemake.log:
-            command.append(')' + self.snakemake.log_fmt_shell(stdout=False, stderr=True))
-        return ' '.join(filter(lambda x: x, command))  # Discard empty strings, then join.
+            options.append(')' + self.snakemake.log_fmt_shell(stdout=False, stderr=True))
+        return ' '.join(filter(lambda x: x, options))  # Discard empty strings, then join.
