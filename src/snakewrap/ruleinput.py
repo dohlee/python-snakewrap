@@ -42,7 +42,7 @@ class SimpleRuleInput(RuleInput):
                     continue
 
                 if command_key is not None:
-                    tmp.append('%s %s' % (template_file.infer_raw_name(), command_key))
+                    tmp.append('%s %s' % (command_key, template_file.infer_raw_name()))
                 else:
                     tmp.append(template_file.infer_raw_name())
 

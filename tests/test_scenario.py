@@ -209,8 +209,7 @@ def test_bismark_single_with_unzipped_fastq():
         '&& mv result/test_bismark_bt2_SE_report.txt result/test.bismark_report.txt ' \
         ') 2> logs/bismark/test.log' \
 
-
-def test_bismark_single_with_unzipped_fastq():
+def test_bismark_single_with_unzipped_fastq_bowtie1():
     snakemake = MockSnakemake({
         'input': {
             'fastq': 'data/test.fastq',
@@ -286,3 +285,193 @@ def test_bismark_single_with_unzipped_fastq():
         '&& mv result/test_bismark_bt2.bam result/test.bismark.bam ' \
         '&& mv result/test_bismark_bt2_SE_report.txt result/test.bismark_report.txt ' \
         ') 2> logs/bismark/test.log' \
+
+def test_bismark_paired_with_unzipped_fastq():
+    snakemake = MockSnakemake({
+        'input': {
+            'fastq': ['data/test.read1.fastq', 'data/test.read2.fastq'],
+            'reference_dir': 'reference/hg38_bismark',
+            'bisulfite_genome_dir': 'reference/hg38_bismark/Bisulfite_Genome',
+        },
+        'output': {
+            'bam': 'result/test.bismark.bam',
+            'report': 'result/test.bismark_report.txt',
+        },
+        'wildcards': {
+            'sample': 'test',
+        },
+        'threads': 6,
+        'params': {'extra': '--bowtie1'},
+        'log': 'logs/bismark/test.log',
+    })
+
+    # Define files.
+    read1 = sw.SimpleTemplateFile('fastq')
+    read2 = sw.SimpleTemplateFile('fastq')
+    reference_dir = sw.SimpleTemplateDirectory('reference_dir')
+    bisulfite_genome_dir = sw.SimpleTemplateDirectory('bisulfite_genome_dir')
+    bam = sw.RenamedTemplateFile(
+        name='bam',
+        regex=r'(?P<prefix>.+?).bismark.bam',
+        raw_name='{prefix}.read1_bismark_bt2_pe.bam',
+    )
+    report = sw.RenamedTemplateFile(
+        name='report',
+        regex=r'(?P<prefix>.+?).bismark_report.txt',
+        raw_name='{prefix}.read1_bismark_bt2_PE_report.txt'
+    )
+
+    # Define input, output, parameters, threads.
+    input = sw.SimpleRuleInput({
+        'reference_dir': (reference_dir, None, True),
+        'fastq': [(read1, '-1', True), (read2, '-2', True)],
+        'bisulfite_genome_dir': (bisulfite_genome_dir, None, False)
+    })
+
+    output = sw.SimpleRuleOutput({
+        'bam': (bam, None, False),
+        'report': (report, None, False),
+    })
+
+    params = sw.SimpleRuleParams(
+        extra=True,
+        outdir=(lambda sn: os.path.dirname(sn.output.bam), '-o', True)
+    )
+
+    threads = sw.ScaledRuleThreads(
+        command_key='--multicore',
+        scale=lambda sn: 1/2 if '--bowtie1' in sn.params.extra else 1/3
+    )
+
+    wrapper = sw.Wrapper(
+        snakemake,
+        command='bismark',
+        input=input,
+        output=output,
+        params=params,
+        threads=threads,
+    )
+
+    assert wrapper.shell_command() == \
+        '( bismark reference/hg38_bismark ' \
+        '-1 data/test.read1.fastq -2 data/test.read2.fastq '\
+        '--bowtie1 ' \
+        '-o result ' \
+        '--multicore 3 ' \
+        '&& mv result/test.read1_bismark_bt2_pe.bam result/test.bismark.bam ' \
+        '&& mv result/test.read1_bismark_bt2_PE_report.txt result/test.bismark_report.txt ' \
+        ') 2> logs/bismark/test.log' \
+
+def test_bismark_paired_with_zipped_fastq():
+    snakemake = MockSnakemake({
+        'input': {
+            'fastq': ['data/test.read1.fastq.gz', 'data/test.read2.fastq.gz'],
+            'reference_dir': 'reference/hg38_bismark',
+            'bisulfite_genome_dir': 'reference/hg38_bismark/Bisulfite_Genome',
+        },
+        'output': {
+            'bam': 'result/test.bismark.bam',
+            'report': 'result/test.bismark_report.txt',
+        },
+        'wildcards': {
+            'sample': 'test',
+        },
+        'threads': 6,
+        'params': {'extra': '--bowtie1'},
+        'log': 'logs/bismark/test.log',
+    })
+
+    # Define files.
+    read1 = sw.SimpleTemplateFile('fastq')
+    read2 = sw.SimpleTemplateFile('fastq')
+    reference_dir = sw.SimpleTemplateDirectory('reference_dir')
+    bisulfite_genome_dir = sw.SimpleTemplateDirectory('bisulfite_genome_dir')
+    bam = sw.RenamedTemplateFile(
+        name='bam',
+        regex=r'(?P<prefix>.+?).bismark.bam',
+        raw_name='{prefix}.read1_bismark_bt2_pe.bam',
+    )
+    report = sw.RenamedTemplateFile(
+        name='report',
+        regex=r'(?P<prefix>.+?).bismark_report.txt',
+        raw_name='{prefix}.read1_bismark_bt2_PE_report.txt'
+    )
+
+    input = sw.SimpleRuleInput({
+        'reference_dir': (reference_dir, None, True),
+        'fastq': [(read1, '-1', True), (read2, '-2', True)],
+        'bisulfite_genome_dir': (bisulfite_genome_dir, None, False)
+    })
+
+    output = sw.SimpleRuleOutput({
+        'bam': (bam, None, False),
+        'report': (report, None, False),
+    })
+
+    params = sw.SimpleRuleParams(
+        extra=True,
+        outdir=(lambda sn: os.path.dirname(sn.output.bam), '-o', True)
+    )
+
+    threads = sw.ScaledRuleThreads(
+        command_key='--multicore',
+        scale=lambda sn: 1/2 if '--bowtie1' in sn.params.extra else 1/3
+    )
+
+    wrapper = sw.Wrapper(
+        snakemake,
+        command='bismark',
+        input=input,
+        output=output,
+        params=params,
+        threads=threads,
+    )
+
+    assert wrapper.shell_command() == \
+        '( bismark reference/hg38_bismark ' \
+        '-1 data/test.read1.fastq.gz -2 data/test.read2.fastq.gz '\
+        '--bowtie1 ' \
+        '-o result ' \
+        '--multicore 3 ' \
+        '&& mv result/test.read1_bismark_bt2_pe.bam result/test.bismark.bam ' \
+        '&& mv result/test.read1_bismark_bt2_PE_report.txt result/test.bismark_report.txt ' \
+        ') 2> logs/bismark/test.log' \
+    
+def test_bismark_genome_preparation():
+    # Define mock snakemake object.
+    snakemake = MockSnakemake({
+        'input': {
+            'reference_dir': 'reference/hg38',
+        },
+        'output': {
+            'bisulfite_genome_dir': 'reference/hg38/Bisulfite_Genome'
+        },
+        'params': {
+            'extra': '',
+        },
+        'log': 'logs/bismark_genome_preparation/log.log'
+    })
+
+    # Define files.
+    reference_dir = sw.SimpleTemplateDirectory('reference_dir')
+    bisulfite_genome_dir = sw.SimpleTemplateDirectory('bisulfite_genome_dir')
+
+    # Define input, output, and parameters.
+    input = sw.SimpleRuleInput({
+        'reference_dir': (reference_dir, None, True),
+    })
+
+    output = sw.SimpleRuleOutput({
+        'bisulfite_genome_dir': (bisulfite_genome_dir, None, False),
+    })
+
+    params = sw.SimpleRuleParams(extra=True)
+
+    wrapper = sw.Wrapper(
+        snakemake=snakemake,
+        command='bismark_genome_preparation',
+        input=input,
+        output=output,
+        params=params,
+    )
+    assert wrapper.shell_command() == '( bismark_genome_preparation reference/hg38 ) 2> logs/bismark_genome_preparation/log.log'
