@@ -43,6 +43,7 @@ shell(
 ```python
 import snakewrap as sw
 
+# Define files.
 bam = sw.SimpleTemplateFile('bam')
 sorted_bam = sw.SimpleTemplateFile('sorted_bam')
 
@@ -72,3 +73,6 @@ wrapper = sw.Wrapper(
 )
 wrapper.run()
 ```
+
+<h2 align="center">Usage</h2>
+This package is designed to provide more structured and systemic way to write wrappers for snakemake. You can think of `snakewrap` as an adapter that connects snakemake rules and wrappers. 
