@@ -44,35 +44,31 @@ shell(
 import snakewrap as sw
 
 bam = sw.SimpleTemplateFile('bam')
-bam_output = sw.SimpleTemplateFile('sorted_bam')
+sorted_bam = sw.SimpleTemplateFile('sorted_bam')
 
 # Create RuleInput object.
-input = sw.SimpleRuleInput(
-    rule_key='bam',
-)
-# Set template to the object.
-input.set_template({
-    'bam': [(bam, None)],
+input = sw.SimpleRuleInput({
+    'bam': Parameter(f=bam, option=None),
 })
-
 # Create RuleOutput object.
-output = sw.SimpleRuleOutput(
-    rule_key='sorted_bam',
-)
-# Set template to the object.
-output.set_template({
-    'sorted_bam': [(sorted_bam, '-o')],
+output = sw.SimpleRuleOutput({
+    'sorted_bam': [Parameter(f=sorted_bam, option='-o')],
 })
-
 # Create RuleParams object.
 params = sw.SimpleRuleParams(
     extra=True,
+    prefix=Parameter(f=lambda sn: os.path.splitext(sn.output.sorted_bam)[0], option='-T')
 )
-
 # Create RuleThreads object.
-threads = sw.SimpleRuleThreads()
+threads = sw.SimpleRuleThreads(command_key='-@')
 
-wrapper = Wrapper(snakemake)
+wrapper = sw.Wrapper(
+    snakemake,
+    command='samtools sort',
+    input=input,
+    output=output,
+    params=params,
+    threads=threads,
+)
 wrapper.run()
-
 ```
